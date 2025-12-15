@@ -6,6 +6,10 @@
 //===================================================
 // ONE map to IOLN legend conversion
 //===================================================
+// More information regarding this temporal ONE dataset can be found here:
+// Koulgi, P.S. & Madhusudan, M.D. (2025) A consistent multi-temporal dataset on India's Open Natural Ecosystems. 
+// https://github.com/mapping-place/one-timeseries
+//
 //  1: agri_hiBiomass → 369 : 3.2. Perenial Agro-forestry (36) 
 //                           + 3.3 Forest Plantation (9)  
 //                           = 369 - #ad6d8f (created color)
@@ -22,7 +26,7 @@
 // 12: water_wetland  →  0  : 'not considered - masked
 
 // ONEs original legend:
-// https://github.com/openlandcover
+// https://github.com/mapping-place/one-timeseries?tab=readme-ov-file
 
 // IOLN legend;
 // https://docs.google.com/spreadsheets/d/1-ELti0qcoLRzAOXtN0EcaEfWp1Ab-8bOEB2Vt97S1sk/edit?usp=drive_link
@@ -55,127 +59,178 @@ Map.setOptions('SATELLITE');
 //===================================================
 // 2. CODE SNIPPET TO PASTE
 //===================================================
-// Load original ONE map
-var indiaONE = ee.Image("projects/ee-open-natural-ecosystems/assets/publish/onesWith7Classes/landcover_hier")
-                .select(['l2LabelNum']);
+// This dataset is temporal and from 2018-2024, 7 years
+// Load the entire seven years
 
-// Remap values
-var fromList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-var toList   = [369, 19, 25, 24, 23, 0, 13, 13, 12, 66, 0, 0];
+///////////////////////////////////////////////////////////
+// PLEASE FILL IN THE YEARS YOU WANT TO SEE ON THE MAP
+// Parameters to specify:
+var Years = [2018, 2019, 2020, 2021, 2022, 2023, 2024];
+//////////////////////////////////////////////////////////
+var indiaOneCol = ee.ImageCollection
+    ('projects/ee-open-natural-ecosystems/assets/publish/ones6Classes/temporallyConsistentPredictions2025');
 
-var paletteRemap = [
-  '#ad6d8f', '#C27BA0', '#db4d4f', "#d4271e", "#ffa07a",
-  "#3D3D3D", "#ffffff", "#ffffff", "#d6bc74", "#a89358",
-  "#3D3D3D", '#3D3D3D'
-];
+print(indiaOneCol);
 
-// Create remapped band
-var OneRemap = indiaONE.remap({
-  from: fromList,
-  to: toList,
-  defaultValue: 0
-}).rename('iolnLegend');
+// Define color palette:
 
-// Visualization index (1–12)
-var visIndex = indiaONE.rename('visIndex');
 
-// Combine both bands
-var imageToMap = visIndex.addBands(OneRemap);
-
-var mask = OneRemap.neq(0);
-var imageMasked = imageToMap.updateMask(mask);
-
-// Add masked layer
-Map.addLayer(
-  imageMasked.clip(geometry),
-  {bands: ['visIndex'], min: 1, max: 12, palette: paletteRemap},
-  'Remapped ONE map', 0
-);
-
-//==========END OF CODE SNIPPET TO PASTE IN WORKFLOW====================
-
-// =======================================================
-// 2. * OPTIONAL: Add legend for the remapped map
-// =======================================================
-var legendDict = {
-  '2.1 Grassland (12)': '#d6bc74',
-  '2.3 Scrubs (66)': '#a89358',
-  '2.5. Other H&S (13)': '#ffffff',
-  '3.1 Annual & Seasonal Crops (19)': '#C27BA0',
-  '3.2 + 3.3 Agro-forestry / Forest Plantation (369)': '#ad6d8f',
-  '4.1 Built-up (24)': '#d4271e',
-  '4.3 Sand dunes (23)': '#ffa07a',
-  '4.5 Bare earth, rocky areas (25)': '#db4d4f',  
+// Function to add an image to a map
+var addMap = function(image, name) {
+  // Map.addLayer(image, {palette: palette}, name,false);
+  Map.addLayer(image, {}, name,false);
 };
 
-// Create legend
-// Set position of panel
-var legend = ui.Panel({
-  style: {
-    position: 'bottom-left',
-    padding: '8px 15px'
-  }
+Years.forEach(function(y) {
+  print('Processing year', y);
+  var mapName = "ONE " + y.toString();
+  print(mapName);
 });
+  
+//   // Take the image for this year
+//   var img = indiaOneCol
+//               .filter(ee.Filter.eq('yearNum', y))
+//               .first()
+//               .select('l2LabelNum');
+  
+//   // Add this image to the map
+//   Map.addLayer(
+//     img,
+//     {
+//       min: 1,
+//       max: 6,
+//       palette: ['#cccccc','#1b9e77','#d95f02','#7570b3','#e7298a','#66a61e']
+//     },
+//     'l2LabelNum ' + y,
+//     false  // (optional) start layers turned off
+//   );
+  
+// });
 
-// Create legend title
-var legendTitle = ui.Label({
-  value: 'ONE map in IOLN legend',
-  style: {
-    fontWeight: 'bold',
-    fontSize: '18px',
-    margin: '0 0 4px 0',
-    padding: '0'
-    }
-});
-
-// Add the title to the panel
-legend.add(legendTitle);
 
 
-// Add legend to map
-Map.add(legend);
+// // Load original ONE map
+// var indiaONE = ee.Image("projects/ee-open-natural-ecosystems/assets/publish/onesWith7Classes/landcover_hier")
+//                 .select(['l2LabelNum']);
 
-// Function to add each legend row
-function makeRow(color, label) {
-  var colorBox = ui.Label({
-    style: {
-      backgroundColor: color,
-      padding: '8px',
-      margin: '0 0 4px 0'
-    }
-  });
+// // Remap values
+// var fromList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+// var toList   = [369, 19, 25, 24, 23, 0, 13, 13, 12, 66, 0, 0];
 
-  var description = ui.Label({
-    value: label,
-    style: { margin: '0 0 4px 6px' }
-  });
+// var paletteRemap = [
+//   '#ad6d8f', '#C27BA0', '#db4d4f', "#d4271e", "#ffa07a",
+//   "#3D3D3D", "#ffffff", "#ffffff", "#d6bc74", "#a89358",
+//   "#3D3D3D", '#3D3D3D'
+// ];
 
-  return ui.Panel({
-    widgets: [colorBox, description],
-    layout: ui.Panel.Layout.Flow('horizontal')
-  });
-}
+// // Create remapped band
+// var OneRemap = indiaONE.remap({
+//   from: fromList,
+//   to: toList,
+//   defaultValue: 0
+// }).rename('iolnLegend');
 
-// Add each dictionary entry to legend
-Object.keys(legendDict).forEach(function(label) {
-  var color = legendDict[label];
-  legend.add(makeRow(color, label));
-});
+// // Visualization index (1–12)
+// var visIndex = indiaONE.rename('visIndex');
 
-// =======================================================
-// 3. * OPTIONAL : Visualisation of the original data *
-// Code obtained from:
-// https://code.earthengine.google.co.in/02585ca79a284e0be81441c24f8653a7
-// ================================================
-// Please uncomment these lines in order to see the original data visualised
+// // Combine both bands
+// var imageToMap = visIndex.addBands(OneRemap);
 
-// // Original mapping:
-// var one12Class = {bands:['l2LabelNum'], min:1, max:12, palette: [
-//     "purple", "lightpink", "beige", "red", "khaki", "darkgreen", 
-//     "fuchsia", "lightsteelblue", "yellow", "goldenrod", "greenyellow", "black"
-//     ]};
-// Map.addLayer(indiaONE, one12Class, "Original ONEs", false); 
+// var mask = OneRemap.neq(0);
+// var imageMasked = imageToMap.updateMask(mask);
 
-// //No legend added for the original map as it is not really needed
+// // Add masked layer
+// Map.addLayer(
+//   imageMasked.clip(geometry),
+//   {bands: ['visIndex'], min: 1, max: 12, palette: paletteRemap},
+//   'Remapped ONE map', 0
+// );
+
+// //==========END OF CODE SNIPPET TO PASTE IN WORKFLOW====================
+
+// // =======================================================
+// // 2. * OPTIONAL: Add legend for the remapped map
+// // =======================================================
+// var legendDict = {
+//   '2.1 Grassland (12)': '#d6bc74',
+//   '2.3 Scrubs (66)': '#a89358',
+//   '2.5. Other H&S (13)': '#ffffff',
+//   '3.1 Annual & Seasonal Crops (19)': '#C27BA0',
+//   '3.2 + 3.3 Agro-forestry / Forest Plantation (369)': '#ad6d8f',
+//   '4.1 Built-up (24)': '#d4271e',
+//   '4.3 Sand dunes (23)': '#ffa07a',
+//   '4.5 Bare earth, rocky areas (25)': '#db4d4f',  
+// };
+
+// // Create legend
+// // Set position of panel
+// var legend = ui.Panel({
+//   style: {
+//     position: 'bottom-left',
+//     padding: '8px 15px'
+//   }
+// });
+
+// // Create legend title
+// var legendTitle = ui.Label({
+//   value: 'ONE map in IOLN legend',
+//   style: {
+//     fontWeight: 'bold',
+//     fontSize: '18px',
+//     margin: '0 0 4px 0',
+//     padding: '0'
+//     }
+// });
+
+// // Add the title to the panel
+// legend.add(legendTitle);
+
+
+// // Add legend to map
+// Map.add(legend);
+
+// // Function to add each legend row
+// function makeRow(color, label) {
+//   var colorBox = ui.Label({
+//     style: {
+//       backgroundColor: color,
+//       padding: '8px',
+//       margin: '0 0 4px 0'
+//     }
+//   });
+
+//   var description = ui.Label({
+//     value: label,
+//     style: { margin: '0 0 4px 6px' }
+//   });
+
+//   return ui.Panel({
+//     widgets: [colorBox, description],
+//     layout: ui.Panel.Layout.Flow('horizontal')
+//   });
+// }
+
+// // Add each dictionary entry to legend
+// Object.keys(legendDict).forEach(function(label) {
+//   var color = legendDict[label];
+//   legend.add(makeRow(color, label));
+// });
+
+// // =======================================================
+// // 3. * OPTIONAL : Visualisation of the original data *
+// // Code obtained from:
+// // https://code.earthengine.google.co.in/02585ca79a284e0be81441c24f8653a7
+// // ================================================
+// // Please uncomment these lines in order to see the original data visualised
+
+// // // Original mapping:
+// // var one12Class = {bands:['l2LabelNum'], min:1, max:12, palette: [
+// //     "purple", "lightpink", "beige", "red", "khaki", "darkgreen", 
+// //     "fuchsia", "lightsteelblue", "yellow", "goldenrod", "greenyellow", "black"
+// //     ]};
+// // Map.addLayer(indiaONE, one12Class, "Original ONEs", false); 
+
+// // //No legend added for the original map as it is not really needed
+
 
 
